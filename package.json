@@ -3,4 +3,12 @@
   "description": "This is the demo of how to use OffscreenCanvas",
   "version": "1.0.0",
   "author": "Yaser Adel Mehraban <adel.mehrban@gmail.com>",
-  }
+  "dependencies": {},
+  "keywords": [
+    "yashints",
+    "OffscreenCanvas",
+    "webperf",
+    "webdev"
+  ],
+  "license": "MIT",
+}
