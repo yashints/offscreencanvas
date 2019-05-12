@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Offscreen Canvas</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <main>
+      <section class="support">
+        Your browser does not support OffscreenCanvas.
+      </section>
+      <section>
+          <h1>
+              Offscreen Canvas
+            </h1>
+
+        <div class="display">
+          <div class="box">
+            <h3>
+              Canvas on main thread
+            </h3>
+            <canvas id="canvas-window" width="400" height="200"></canvas>
+          </div>
+          <div class="box">
+            <h3>
+              Canvas on worker
+            </h3>
+            <canvas id="canvas-worker" width="400" height="200"></canvas>
+          </div>
+        </div>
+
+        <button id="make-busy">Hit main thread!</button>
+        <div id="busy">&nbsp;</div>
+      </section>
+    </main>
+
+    <script src="animation.js"></script>
+
+    <script type="script/worker" id="workerCode">
+      let animationWorker = null;
+      self.onmessage = function(e) {
+        switch (e.data.msg) {
+          case 'start':
+            if (!animationWorker) {
+              importScripts(e.data.origin + '/animation.js');
+              animationWorker = new Animation(e.data.canvas.getContext('2d'));
+            }
+            animationWorker.start();
+            break;
+          case 'stop':
+            animationWorker.stop();
+            break;
+        }
+      };
+    </script>
+
+    <script>
+      (async () => {
+        // Feature detect.
+        document
+          .querySelector("main")
+          .classList.toggle("supported", "OffscreenCanvas" in window);
+
+        document.body.classList.toggle(
+          "iframe",
+          window.location != window.parent.location
+        );
+
+        document.querySelector("#make-busy").addEventListener("click", () => {
+          document.querySelector("#busy").innerText = "Giving main thread some love 😁";
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              Animation.fibonacci(40);
+              document.querySelector("#busy").innerText = "Done!";
+            });
+          });
+        });
+
+        const canvas = document.querySelector("#case1");
+        const animationWindow = new Animation(
+          document.querySelector("#canvas-window").getContext("2d")
+        );
+        animationWindow.start();
+
+        const workerCode = document.querySelector("#workerCode").textContent;
+        const blob = new Blob([workerCode], { type: "text/javascript" });
+        const url = URL.createObjectURL(blob);
+        const worker = new Worker(url);
+
+        const offscreen = document
+          .querySelector("#canvas-worker")
+          .transferControlToOffscreen();
+        const urlParts = location.href.split("/");
+        if (urlParts[urlParts.length - 1].indexOf(".") !== -1) {
+          urlParts.pop();
+        }
+        worker.postMessage(
+          { msg: "start", origin: urlParts.join("/"), canvas: offscreen },
+          [offscreen]
+        );
+        URL.revokeObjectURL(url); // cleanup
+      })();
+    </script>
+  </body>
+</html>
